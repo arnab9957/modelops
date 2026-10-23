@@ -1,4 +1,4 @@
-name: ModelOps CI
+name: ModelOps CI/CD
 
 on:
   push:
@@ -39,3 +39,39 @@ jobs:
 
       - name: Build inference Docker image
         run: docker build -f Dockerfile.inference -t modelops-api:ci .
+
+  publish-image:
+    needs: test-and-build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set image name
+        id: image
+        shell: bash
+        run: |
+          echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push inference image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.inference
+          push: true
+          tags: |
+            ${{ steps.image.outputs.name }}:latest
+            ${{ steps.image.outputs.name }}:${{ github.sha }}
