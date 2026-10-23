@@ -41,11 +41,17 @@ RANDOM_STATE = 42
 MINIMUM_ACCURACY = 0.90
 
 
+def _enable_mlflow_file_store_for_file_uri(tracking_uri: str) -> None:
+    if tracking_uri.startswith("file:"):
+        os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
+
+
 def train_model() -> dict:
     # --------------------------------------------------
     # 1. Configure MLflow
     # --------------------------------------------------
 
+    _enable_mlflow_file_store_for_file_uri(TRACKING_URI)
     mlflow.set_tracking_uri(TRACKING_URI)
     mlflow.set_experiment(EXPERIMENT_NAME)
 
