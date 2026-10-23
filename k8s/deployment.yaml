@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: modelops
+  labels:
+    app: modelops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: modelops
+  template:
+    metadata:
+      labels:
+        app: modelops
+    spec:
+      containers:
+        - name: modelops-api
+          image: ghcr.io/arnab9957/modelops:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: modelops-service
+spec:
+  type: NodePort
+  selector:
+    app: modelops
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      nodePort: 30080
